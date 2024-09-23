@@ -40,7 +40,7 @@ jobs:
 
       # Handle the error message based on the previous step
       - name: Error message on failure
-        if: failure()   # Only runs if the previous step fails
+        if: ${{ steps.simulate_failure.outcome == 'failure' }}   # Only runs if the previous step fails
         run: echo "::error The previous step failed. Please check your build process."
 
       # Always display a message on completion
