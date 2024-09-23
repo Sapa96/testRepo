@@ -36,8 +36,7 @@ jobs:
       # Introduce a step to simulate an error
       - name: Simulate a failure
         run: |
-          echo "::error::step failed. Please check your build process."
-          exit 1
+          echo "::error step failed. Please check your build process."
         continue-on-error: true
 
       # Always display a message on completion
