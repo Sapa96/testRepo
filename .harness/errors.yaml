@@ -1,0 +1,157 @@
+version: "1.0"
+ruleGroups:
+  # Example 1: Simple nested AND/OR
+  - name: "Simple Nested Conditions"
+    conditionExpression:
+      operator: "OR"
+      conditions:
+        - operator: "AND"
+          conditions:
+            - key: "standardOutput"
+              operand: "contains"
+              value: "error"
+            - key: "errorCode"
+              operand: "is"
+              value: 1
+        - key: "stepName"
+          operand: "is"
+          value: "critical-step"
+    actions:
+      - type: "setErrorCategory"
+        value: "SimpleNestedError"
+
+  # Example 2: Deeply nested (3 levels)
+  - name: "Deeply Nested Conditions"
+    conditionExpression:
+      operator: "OR"
+      conditions:
+        - operator: "AND"
+          conditions:
+            - operator: "OR"
+              conditions:
+                - key: "standardOutput"
+                  operand: "contains"
+                  value: "error1"
+                - key: "standardOutput"
+                  operand: "contains"
+                  value: "error2"
+            - key: "errorCode"
+              operand: "is"
+              value: 1
+        - operator: "AND"
+          conditions:
+            - key: "stepName"
+              operand: "is"
+              value: "critical-step"
+            - operator: "OR"
+              conditions:
+                - key: "standardErrorOutput"
+                  operand: "contains"
+                  value: "fatal"
+                - key: "standardErrorOutput"
+                  operand: "contains"
+                  value: "critical"
+    actions:
+      - type: "setErrorCategory"
+        value: "NestedError"
+      - type: "setErrorSubcategory"
+        value: "ComplexNestedError"
+
+  # Example 3: Multiple nested levels with different operators
+  - name: "Complex Multi-Level Nesting"
+    conditionExpression:
+      operator: "AND"
+      conditions:
+        - operator: "OR"
+          conditions:
+            - key: "standardOutput"
+              operand: "contains"
+              value: "build"
+            - key: "standardOutput"
+              operand: "contains"
+              value: "compile"
+        - operator: "AND"
+          conditions:
+            - key: "errorCode"
+              operand: "isNot"
+              value: 0
+            - operator: "OR"
+              conditions:
+                - key: "standardErrorOutput"
+                  operand: "contains"
+                  value: "fatal"
+                - operator: "AND"
+                  conditions:
+                    - key: "stepName"
+                      operand: "is"
+                      value: "build-step"
+                    - key: "standardOutput"
+                      operand: "doesNotMatch"
+                      value: "success"
+    actions:
+      - type: "setErrorCategory"
+        value: "ComplexError"
+      - type: "setErrorSubcategory"
+        value: "MultiLevelNested"
+
+  # Example 4: Nested with all field types
+  - name: "Nested All Fields"
+    conditionExpression:
+      operator: "OR"
+      conditions:
+        - operator: "AND"
+          conditions:
+            - key: "standardOutput"
+              operand: "contains"
+              value: "error"
+            - key: "standardErrorOutput"
+              operand: "contains"
+              value: "fatal"
+            - key: "errorCode"
+              operand: "is"
+              value: 1
+        - operator: "AND"
+          conditions:
+            - key: "stepName"
+              operand: "is"
+              value: "deploy"
+            - operator: "OR"
+              conditions:
+                - key: "stageId"
+                  operand: "is"
+                  value: "production"
+                - key: "pipelineName"
+                  operand: "is"
+                  value: "prod-pipeline"
+    actions:
+      - type: "setErrorCategory"
+        value: "AllFieldsNested"
+      - type: "setErrorMessage"
+        value: "Error detected with all field types"
+
+  # Example 5: Very deep nesting (4 levels)
+  - name: "Very Deep Nesting"
+    conditionExpression:
+      operator: "OR"
+      conditions:
+        - operator: "AND"
+          conditions:
+            - operator: "OR"
+              conditions:
+                - operator: "AND"
+                  conditions:
+                    - key: "standardOutput"
+                      operand: "contains"
+                      value: "level1"
+                    - key: "standardOutput"
+                      operand: "contains"
+                      value: "level2"
+                - key: "standardOutput"
+                  operand: "contains"
+                  value: "level3"
+            - key: "errorCode"
+              operand: "is"
+              value: 1
+    actions:
+      - type: "setErrorCategory"
+        value: "DeepNestedError"
