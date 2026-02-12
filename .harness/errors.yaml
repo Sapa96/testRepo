@@ -1,4 +1,5 @@
 version: "1.0"
+
 ruleGroups:
   # Example 1: Simple nested AND/OR
   - name: "Simple Nested Conditions"
@@ -13,7 +14,7 @@ ruleGroups:
             - key: "errorCode"
               operand: "is"
               value: 1
-        - key: "stepName"
+        - key: "stepId"
           operand: "is"
           value: "critical-step"
     actions:
@@ -40,7 +41,7 @@ ruleGroups:
               value: 1
         - operator: "AND"
           conditions:
-            - key: "stepName"
+            - key: "stepId"
               operand: "is"
               value: "critical-step"
             - operator: "OR"
@@ -82,7 +83,7 @@ ruleGroups:
                   value: "fatal"
                 - operator: "AND"
                   conditions:
-                    - key: "stepName"
+                    - key: "stepId"
                       operand: "is"
                       value: "build-step"
                     - key: "standardOutput"
@@ -112,7 +113,7 @@ ruleGroups:
               value: 1
         - operator: "AND"
           conditions:
-            - key: "stepName"
+            - key: "stepId"
               operand: "is"
               value: "deploy"
             - operator: "OR"
@@ -120,7 +121,7 @@ ruleGroups:
                 - key: "stageId"
                   operand: "is"
                   value: "production"
-                - key: "pipelineName"
+                - key: "pipelineId"
                   operand: "is"
                   value: "prod-pipeline"
     actions:
