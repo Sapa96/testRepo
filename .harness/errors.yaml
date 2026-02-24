@@ -1,158 +1,249 @@
 version: "1.0"
-
 ruleGroups:
-  # Example 1: Simple nested AND/OR
-  - name: "Simple Nested Conditions"
+  # Rule 1: OOM Kill via exit code 137
+  - name: "OOM Kill Exit 137"
     conditionExpression:
-      operator: "OR"
-      conditions:
-        - operator: "AND"
-          conditions:
-            - key: "standardOutput"
-              operand: "contains"
-              value: "error"
-            - key: "errorCode"
-              operand: "is"
-              value: 1
-        - key: "stepId"
-          operand: "is"
-          value: "critical-step"
+      key: "errorCode"
+      operand: "is"
+      value: 137
     actions:
       - type: "setErrorCategory"
-        value: "SimpleNestedError"
-
-  # Example 2: Deeply nested (3 levels)
-  - name: "Deeply Nested Conditions"
-    conditionExpression:
-      operator: "OR"
-      conditions:
-        - operator: "AND"
-          conditions:
-            - operator: "OR"
-              conditions:
-                - key: "standardOutput"
-                  operand: "contains"
-                  value: "error1"
-                - key: "standardOutput"
-                  operand: "contains"
-                  value: "error2"
-            - key: "errorCode"
-              operand: "is"
-              value: 1
-        - operator: "AND"
-          conditions:
-            - key: "stepId"
-              operand: "is"
-              value: "critical-step"
-            - operator: "OR"
-              conditions:
-                - key: "standardErrorOutput"
-                  operand: "contains"
-                  value: "fatal"
-                - key: "standardErrorOutput"
-                  operand: "contains"
-                  value: "critical"
-    actions:
-      - type: "setErrorCategory"
-        value: "NestedError"
+        value: "RESOURCE_LIMITS_FAILURE"
       - type: "setErrorSubcategory"
-        value: "ComplexNestedError"
+        value: "CONTAINER_OOM_KILLED"
+      - type: "setErrorMessage"
+        value: "Process killed by OOM killer (exit 137) — increase container memory limits."
 
-  # Example 3: Multiple nested levels with different operators
-  - name: "Complex Multi-Level Nesting"
+  # Rule 2: Segfault via exit code 139
+  - name: "Segmentation Fault Exit 139"
+    conditionExpression:
+      key: "errorCode"
+      operand: "is"
+      value: 139
+    actions:
+      - type: "setErrorCategory"
+        value: "APPLICATION_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "SCRIPT_RUNTIME_CRASH"
+      - type: "setErrorMessage"
+        value: "Segmentation fault (exit 139) — check for null pointer or buffer overflow in native code."
+
+  # Rule 3: Permission denied exit 126
+  - name: "Permission Denied Exit 126"
+    conditionExpression:
+      key: "errorCode"
+      operand: "is"
+      value: 126
+    actions:
+      - type: "setErrorCategory"
+        value: "CONFIGURATION_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "FILE_SYSTEM_PERMISSION_ERROR"
+      - type: "setErrorMessage"
+        value: "Permission denied (exit 126) — ensure the script or binary has execute permission."
+
+  # Rule 4: Command not found exit 127
+  - name: "Command Not Found Exit 127"
+    conditionExpression:
+      key: "errorCode"
+      operand: "is"
+      value: 127
+    actions:
+      - type: "setErrorCategory"
+        value: "CONFIGURATION_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "MISSING_CONFIGURATION"
+      - type: "setErrorMessage"
+        value: "Command not found (exit 127) — verify the binary is installed in the container image."
+
+  # Rule 5: pipelineId matching
+  - name: "Evaluator Pipeline Error"
     conditionExpression:
       operator: "AND"
       conditions:
-        - operator: "OR"
-          conditions:
-            - key: "standardOutput"
-              operand: "contains"
-              value: "build"
-            - key: "standardOutput"
-              operand: "contains"
-              value: "compile"
+        - key: "pipelineId"
+          operand: "contains"
+          value: "Evaluator"
+        - key: "standardErrorOutput"
+          operand: "contains"
+          value: "pipeline-specific-error"
+    actions:
+      - type: "setErrorCategory"
+        value: "APPLICATION_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "PIPELINE_EXECUTION_FAILED"
+      - type: "setErrorMessage"
+        value: "Pipeline-specific validation failed — check pipeline configuration."
+
+  # Rule 6: stageId matching
+  - name: "CI Stage Error"
+    conditionExpression:
+      operator: "AND"
+      conditions:
+        - key: "stageId"
+          operand: "is"
+          value: "CI"
+        - key: "standardErrorOutput"
+          operand: "contains"
+          value: "stage-level-failure"
+    actions:
+      - type: "setErrorCategory"
+        value: "INFRASTRUCTURE_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "STEP_FAILED_TO_START"
+      - type: "setErrorMessage"
+        value: "CI stage infrastructure not ready — check runner and node availability."
+
+  # Rule 7: Complex regex - Java stack trace pattern
+  - name: "Java Stack Trace"
+    conditionExpression:
+      key: "standardErrorOutput"
+      operand: "regex"
+      value: "at [a-z]+\\.[a-z]+\\.[A-Z][a-zA-Z]+\\.[a-zA-Z]+\\([A-Z][a-zA-Z]+\\.java:[0-9]+\\)"
+    actions:
+      - type: "setErrorCategory"
+        value: "APPLICATION_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "SCRIPT_RUNTIME_CRASH"
+      - type: "setErrorMessage"
+        value: "Java exception detected — review the stack trace for root cause."
+
+  # Rule 8: Complex regex - Python traceback
+  - name: "Python Traceback"
+    conditionExpression:
+      key: "standardErrorOutput"
+      operand: "regex"
+      value: "File \".*\\.py\", line [0-9]+"
+    actions:
+      - type: "setErrorCategory"
+        value: "APPLICATION_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "EXECUTION_FAILURE"
+      - type: "setErrorMessage"
+        value: "Python traceback detected — fix the exception at the reported file and line."
+
+  # Rule 9: doesNotMatch on stderr (no timeout but has error)
+  - name: "Non-Timeout Error"
+    conditionExpression:
+      operator: "AND"
+      conditions:
+        - key: "standardErrorOutput"
+          operand: "contains"
+          value: "ERROR"
+        - key: "standardErrorOutput"
+          operand: "doesNotMatch"
+          value: "timeout"
+        - key: "standardErrorOutput"
+          operand: "doesNotMatch"
+          value: "timed out"
+    actions:
+      - type: "setErrorCategory"
+        value: "APPLICATION_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "GENERAL_ERROR"
+      - type: "setErrorMessage"
+        value: "Non-timeout application error — review stderr for failure details."
+
+  # Rule 10: isNot on errorCode (any non-standard failure)
+  # INTENTIONALLY uses invalid subcategory to test unknown fallback
+  - name: "Unusual Exit Code"
+    conditionExpression:
+      operator: "AND"
+      conditions:
+        - key: "errorCode"
+          operand: "isNot"
+          value: 0
+        - key: "errorCode"
+          operand: "isNot"
+          value: 1
+        - key: "errorCode"
+          operand: "isNot"
+          value: 137
+        - key: "errorCode"
+          operand: "isNot"
+          value: 139
+        - key: "errorCode"
+          operand: "isNot"
+          value: 126
+        - key: "errorCode"
+          operand: "isNot"
+          value: 127
+    actions:
+      - type: "setErrorCategory"
+        value: "UNKNOWN_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "UNUSUAL_EXIT_CODE_DETECTED"
+      - type: "setErrorMessage"
+        value: "Unexpected exit code — investigate the process for non-standard termination."
+
+  # Rule 11: Large log needle-in-haystack
+  - name: "Hidden Error in Large Log"
+    conditionExpression:
+      operator: "AND"
+      conditions:
+        - key: "standardOutput"
+          operand: "contains"
+          value: "CRITICAL_FAILURE_MARKER_XYZ"
+        - key: "errorCode"
+          operand: "is"
+          value: 1
+    actions:
+      - type: "setErrorCategory"
+        value: "APPLICATION_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "SCRIPT_EXITED_NON_ZERO"
+      - type: "setErrorMessage"
+        value: "Critical failure marker found deep in logs — check final validation output."
+
+  # Rule 12: Regex on stdout - semantic version pattern
+  - name: "Version Mismatch"
+    conditionExpression:
+      key: "standardOutput"
+      operand: "regex"
+      value: "version mismatch: expected v[0-9]+\\.[0-9]+\\.[0-9]+ but got v[0-9]+\\.[0-9]+\\.[0-9]+"
+    actions:
+      - type: "setErrorCategory"
+        value: "APPLICATION_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "DEPENDENCY_RESOLUTION_FAILED"
+      - type: "setErrorMessage"
+        value: "Dependency version mismatch — align expected and actual versions."
+
+  # Rule 13: 4-level deep nesting (DNS or cert)
+  - name: "Deep Nested Infrastructure"
+    conditionExpression:
+      operator: "OR"
+      conditions:
         - operator: "AND"
           conditions:
+            - operator: "OR"
+              conditions:
+                - operator: "AND"
+                  conditions:
+                    - key: "standardErrorOutput"
+                      operand: "contains"
+                      value: "dns"
+                    - key: "standardErrorOutput"
+                      operand: "contains"
+                      value: "resolution failed"
+                - key: "standardErrorOutput"
+                  operand: "regex"
+                  value: "NXDOMAIN|SERVFAIL"
             - key: "errorCode"
               operand: "isNot"
               value: 0
-            - operator: "OR"
-              conditions:
-                - key: "standardErrorOutput"
-                  operand: "contains"
-                  value: "fatal"
-                - operator: "AND"
-                  conditions:
-                    - key: "stepId"
-                      operand: "is"
-                      value: "build-step"
-                    - key: "standardOutput"
-                      operand: "doesNotMatch"
-                      value: "success"
-    actions:
-      - type: "setErrorCategory"
-        value: "ComplexError"
-      - type: "setErrorSubcategory"
-        value: "MultiLevelNested"
-
-  # Example 4: Nested with all field types
-  - name: "Nested All Fields"
-    conditionExpression:
-      operator: "OR"
-      conditions:
         - operator: "AND"
           conditions:
-            - key: "standardOutput"
-              operand: "contains"
-              value: "error"
             - key: "standardErrorOutput"
               operand: "contains"
-              value: "fatal"
-            - key: "errorCode"
-              operand: "is"
-              value: 1
-        - operator: "AND"
-          conditions:
-            - key: "stepId"
-              operand: "is"
-              value: "deploy"
-            - operator: "OR"
-              conditions:
-                - key: "stageId"
-                  operand: "is"
-                  value: "production"
-                - key: "pipelineId"
-                  operand: "is"
-                  value: "prod-pipeline"
+              value: "certificate"
+            - key: "standardErrorOutput"
+              operand: "regex"
+              value: "expired|invalid|untrusted"
     actions:
       - type: "setErrorCategory"
-        value: "AllFieldsNested"
+        value: "CONNECTIVITY_FAILURE"
+      - type: "setErrorSubcategory"
+        value: "DNS_RESOLUTION_FAILED"
       - type: "setErrorMessage"
-        value: "Error detected with all field types"
-
-  # Example 5: Very deep nesting (4 levels)
-  - name: "Very Deep Nesting"
-    conditionExpression:
-      operator: "OR"
-      conditions:
-        - operator: "AND"
-          conditions:
-            - operator: "OR"
-              conditions:
-                - operator: "AND"
-                  conditions:
-                    - key: "standardOutput"
-                      operand: "contains"
-                      value: "level1"
-                    - key: "standardOutput"
-                      operand: "contains"
-                      value: "level2"
-                - key: "standardOutput"
-                  operand: "contains"
-                  value: "level3"
-            - key: "errorCode"
-              operand: "is"
-              value: 1
-    actions:
-      - type: "setErrorCategory"
-        value: "DeepNestedError"
+        value: "DNS or TLS certificate error — verify DNS resolution and certificate validity."
